@@ -7,64 +7,34 @@ const {
   actualizarProducto,
   eliminarProducto,
 } = require("../controllers/producto.controller");
-const uploadProducto = require("../middlewares/uploadProducto");
-const {
-  validarCrearProducto,
-  validarActualizarProducto,
-} = require("../validators/producto.validators");
 
 const router = express.Router();
 
-// Validacion del ID de Mongo
+// Validador simple de ID de Mongo
 const validarId = [
-  param("id").isMongoId().withMessage("ID invalido"),
+  param("id")
+    .isMongoId()
+    .withMessage("El ID proporcionado no es válido"),
 ];
 
-// Crear producto (con imagen y validaciones)
-router.post(
-  "/",
-  uploadProducto,
-  validarCrearProducto,
-  crearProducto
-);
+//  API REST JSON MercApp
 
-// Listar todos
+// GET /api/products
 router.get("/", listarProductos);
 
-// Actualizar producto
-router.put(
-  "/:id",
-  uploadProducto,
-  [...validarId, ...validarActualizarProducto],
-  actualizarProducto
-);
+// GET /api/products/:id
+router.get("/:id", validarId, obtenerProducto);
 
-// Actualizar producto (FORM HTML - POST)
-router.post(
-  "/:id",
-  uploadProducto,
-  [...validarId, ...validarActualizarProducto],
-  actualizarProducto
-);
+// POST /api/products
+router.post("/", crearProducto);
 
-// Obtener uno por ID
-router.get(
-  "/:id",
-  validarId,
-  obtenerProducto
-);
+// PUT /api/products/:id
+router.put("/:id", validarId, actualizarProducto);
 
-// Eliminar producto via API 
-router.delete(
-  "/:id",
-  validarId,
-  eliminarProducto
-);
+// PATCH /api/products/:id
+router.patch("/:id", validarId, actualizarProducto);
 
-// Eliminar producto desde formulario HTML
-router.post(
-  "/:id/eliminar",
-  validarId,
-  eliminarProducto
-);
+// DELETE /api/products/:id
+router.delete("/:id", validarId, eliminarProducto);
+
 module.exports = router;

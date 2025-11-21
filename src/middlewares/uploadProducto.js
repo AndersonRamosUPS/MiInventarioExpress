@@ -30,12 +30,28 @@ function fileFilter(req, file, cb) {
   }
 }
 
-const uploadProducto = multer({
-    storage,
-    fileFilter,
-    limits:{
-        fileSize: 2 * 1024 * 1024,
-    },
-}).single("imagen");    //Nombre del campo en el formulario
+// Controla errores y sigue el flujo
+const uploadProducto = (req, res, next) => {
+  upload.single("imagen")(req, res, function (err) {
+    if (err) {
+      // Tipo de archivo inválido
+      if (err.message.includes("Tipo de archivo no permitido")) {
+        req.session.multerError = err.message;
+        return res.redirect("/productos/nuevo");
+      }
+
+      // Tamaño excedido
+      if (err.code === "LIMIT_FILE_SIZE") {
+        req.session.multerError =
+          "El archivo es demasiado grande. Tamaño maximo: 2MB.";
+        return res.redirect("/productos/nuevo");
+      }
+
+      return next(err);
+    }
+
+    next();
+  });
+};
 
 module.exports = uploadProducto;

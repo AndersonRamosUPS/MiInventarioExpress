@@ -13,6 +13,7 @@ const { connectDB } = require("./config/db");
 const productosRouter = require("./routes/productos.routes");
 const authRouter = require("./routes/auth.routes");
 const vistasRouter = require("./routes/vistas.routes");
+const categoriesRouter = require("./routes/categories.routes");
 const errorHandler = require("./middlewares/errorHandler");
 
 dotenv.config();
@@ -78,7 +79,9 @@ app.set("views", path.join(__dirname, "views"));
 // Rutas vistas
 app.use("/", vistasRouter); //Vistas protegidas
 app.use("/api/auth", authRouter); //API auth
-app.use("/api/productos", productosRouter); //Api productos
+app.use("/api/products", productosRouter); //Api productos
+app.use("/api/products", productosRouter);
+app.use("/api/categories", categoriesRouter);
 
 // Manejo de errores
 app.use(errorHandler);

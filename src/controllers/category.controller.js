@@ -1,5 +1,5 @@
 // Controlador de categorías: Solo lectura (GET /api/categories)
-const Category = require("../models/Category");
+const Category = require("../models/Categorias");
 
 // GET /api/categories
 async function obtenerCategorias(req, res, next) {

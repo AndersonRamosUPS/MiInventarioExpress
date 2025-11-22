@@ -1,39 +1,48 @@
 const { validationResult } = require("express-validator");
 const Producto = require("../models/Producto");
 
+//Revisa los errores de expresss-validator (body)
 function manejarValidacion(req) {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
+  const errores = validationResult(req);
+
+  if (!errores.isEmpty()) {
     const error = new Error("Los datos enviados no son válidos");
-    error.status = 400;
-    error.details = errors.array();
+    error.status = 400; //400 por validacion
+    error.details = errores.array();
     throw error;
   }
 }
 
+//Normaliza nombres en español- ingles
 function normalizarBodyProducto(req) {
-  const body = req.body || {};
+  const cuerpo = req.body || {};
 
-  if (body.name && !body.nombre) body.nombre = body.name;
-  if (body.description && !body.descripcion)
-    body.descripcion = body.description;
-  if (body.price && !body.precio) body.precio = body.price;
-  if (body.imageUrl && !body.imagen) body.imagen = body.imageUrl;
-  if (body.categoryId && !body.categoriaId) body.categoriaId = body.categoryId;
+  if (cuerpo.name && !cuerpo.nombre) cuerpo.nombre = cuerpo.name;
+  if (cuerpo.description && !cuerpo.descripcion)
+    cuerpo.descripcion = cuerpo.description;
+  if (cuerpo.price && !cuerpo.precio) cuerpo.precio = cuerpo.price;
+  if (cuerpo.imageUrl && !cuerpo.imagen) cuerpo.imagen = cuerpo.imageUrl;
+  if (cuerpo.categoryId && !cuerpo.categoriaId)
+    cuerpo.categoriaId = cuerpo.categoryId;
 
-  if (body.stock !== undefined && body.stock !== null && body.stock !== "") {
-    body.stock = Number(body.stock);
+  if (
+    cuerpo.stock !== undefined &&
+    cuerpo.stock !== null &&
+    cuerpo.stock !== ""
+  ) {
+    cuerpo.stock = Number(cuerpo.stock);
   }
 
-  req.body = body;
+  req.body = cuerpo;
 }
 
 //Crear producto: POST /api/products
 async function crearProducto(req, res, next) {
   try {
     normalizarBodyProducto(req);
+    manejarValidacion(req);
 
-    const data = {
+    const datos = {
       nombre: req.body.nombre,
       descripcion: req.body.descripcion,
       precio: req.body.precio,
@@ -43,16 +52,16 @@ async function crearProducto(req, res, next) {
 
     // Si viene archivo de imagen (desde formulario HTML)
     if (req.file) {
-      data.imagen = req.file.filename;
+      datos.imagen = req.file.filename;
     }
 
-    const nuevoProducto = new Producto(data);
+    const nuevoProducto = new Producto(datos);
     const productoGuardado = await nuevoProducto.save();
 
-    //toJSON del modelo, se devuelven campos en ingles
+    // toJSON del modelo-> devuelve campos en inglés
     res.status(201).json(productoGuardado);
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    next(error);
   }
 }
 
@@ -60,9 +69,9 @@ async function crearProducto(req, res, next) {
 async function listarProductos(req, res, next) {
   try {
     const productos = await Producto.find();
-    res.json(productos); // aplica toJSON → nombres en inglés
-  } catch (err) {
-    next(err);
+    res.json(productos); // aplica toJSON -> nombres en inglés
+  } catch (error) {
+    next(error); // llegara como 500 si es inesperado
   }
 }
 
@@ -73,14 +82,15 @@ async function obtenerProducto(req, res, next) {
     const producto = await Producto.findById(id);
 
     if (!producto) {
+      //404 si no existe
       return res
         .status(404)
-        .json({ ok: false, message: "Producto no encontrado" });
+        .json({ ok: false, mensaje: "Producto no encontrado" });
     }
 
     res.json(producto);
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    next(error);
   }
 }
 
@@ -90,33 +100,37 @@ async function actualizarProducto(req, res, next) {
     const { id } = req.params;
 
     normalizarBodyProducto(req);
+    manejarValidacion(req);
 
-    const data = {
-      nombre: req.body.nombre,
-      descripcion: req.body.descripcion,
-      precio: req.body.precio,
-      categoriaId: req.body.categoriaId || null,
-      stock: req.body.stock,
-    };
+    const datos = {};
+
+    if (req.body.nombre !== undefined) datos.nombre = req.body.nombre;
+    if (req.body.descripcion !== undefined)
+      datos.descripcion = req.body.descripcion;
+    if (req.body.precio !== undefined) datos.precio = req.body.precio;
+    if (req.body.categoriaId !== undefined)
+      datos.categoriaId = req.body.categoriaId;
+    if (req.body.stock !== undefined) datos.stock = req.body.stock;
 
     if (req.file) {
-      data.imagen = req.file.filename;
+      datos.imagen = req.file.filename;
     }
 
-    const productoActualizado = await Producto.findByIdAndUpdate(id, data, {
+    const productoActualizado = await Producto.findByIdAndUpdate(id, datos, {
       new: true,
       runValidators: true,
     });
 
     if (!productoActualizado) {
+      // ← 404 si no existe
       return res
         .status(404)
-        .json({ ok: false, message: "Producto no encontrado" });
+        .json({ ok: false, mensaje: "Producto no encontrado" });
     }
 
     res.json(productoActualizado);
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    next(error);
   }
 }
 
@@ -127,14 +141,18 @@ async function eliminarProducto(req, res, next) {
     const productoEliminado = await Producto.findByIdAndDelete(id);
 
     if (!productoEliminado) {
+      // ← 404 si no existe
       return res
         .status(404)
-        .json({ ok: false, message: "Producto no encontrado" });
+        .json({ ok: false, mensaje: "Producto no encontrado" });
     }
 
-    res.json({ ok: true, message: "Producto eliminado correctamente" });
-  } catch (err) {
-    next(err);
+    res.json({
+      ok: true,
+      mensaje: "Producto eliminado correctamente",
+    });
+  } catch (error) {
+    next(error);
   }
 }
 
